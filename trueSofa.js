@@ -58,20 +58,29 @@ export class Sofa {
 		this.numberOfSamples = this.f.get("N").value.length;
 		this.sourcePosition = one2two(this.sourcePositionPre, 3);
 		this.IRs = this.f.get("Data.IR").value;  // take a few second
+
+		this.currentIndex = 0;
 		}
 	getFilter(Phi, Theta, Radius){
 		let closestIndex = SofaGetClosestPosition(Phi, Theta, Radius, this.sourcePosition);
+		this.currentIndex = closestIndex;
 		let LStart = closestIndex*this.numberOfSamples*2;
 		let RStart = LStart + this.numberOfSamples;
 		let L = this.IRs.slice(LStart,RStart);
 		let R = this.IRs.slice(RStart,RStart+this.numberOfSamples);
 		return [L,R]
 	}
-
-	createFilterConvolverNode(Phi,Theta,Radius,AudioCTX){
+	
+	getFilterAudioBuffer(Phi,Theta,Radius,AudioCTX){
 		let	[L,R] =	this.getFilter(Phi,Theta,Radius);
+		return  convertIR2AudioBuf(AudioCTX,L,R);
+	}
+	createFilterConvolverNode(Phi,Theta,Radius,AudioCTX){
+		let buffer = this.getFilterAudioBuffer(Phi, Theta, Radius, AudioCTX);
 		let Convolver = AudioCTX.createConvolver();
-		Convolver.buffer = convertIR2AudioBuf(AudioCTX,L,R);
+		Convolver.buffer = buffer;
 		return Convolver;
 	}
+
+	
 }
