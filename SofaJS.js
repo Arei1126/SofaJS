@@ -53,15 +53,15 @@ export class Sofa {
 	constructor(buffer) {
 		this.buffer = buffer;
 		this.f = new hdf5.File(this.buffer, "w");
-		this.sourcePositionPre = this.f.get("SourcePosition").value;
+		let sourcePositionPre = this.f.get("SourcePosition").value;
 		this.numberOfSourcePositions = this.f.get("M").value.length;
 		this.numberOfSamples = this.f.get("N").value.length;
-		this.sourcePosition = one2two(this.sourcePositionPre, 3);
-		this.IRs = this.f.get("Data.IR").value;  // take a few second
-
-		this.currentIndex = 0;
+		this.sourcePosition = one2two(sourcePositionPre, 3);
+		this.IRs = this.f.get("Data.IR").value;  // this take a few second
+		this.currentIndex = undefined;
 		}
-	getFilter(Phi, Theta, Radius){
+
+	getFilter(Phi, Theta, Radius){  // Return simple arrays of Impulse Response data
 		let closestIndex = SofaGetClosestPosition(Phi, Theta, Radius, this.sourcePosition);
 		this.currentIndex = closestIndex;
 		let LStart = closestIndex*this.numberOfSamples*2;
@@ -71,16 +71,27 @@ export class Sofa {
 		return [L,R]
 	}
 	
-	getFilterAudioBuffer(Phi,Theta,Radius,AudioCTX){
+	getFilterAudioBuffer(Phi,Theta,Radius,AudioCTX){  // Given AudioContexct, return audio buffer of Impulse Response
 		let	[L,R] =	this.getFilter(Phi,Theta,Radius);
 		return  convertIR2AudioBuf(AudioCTX,L,R);
 	}
-	createFilterConvolverNode(Phi,Theta,Radius,AudioCTX){
+	getFilterConvolverNode(Phi,Theta,Radius,AudioCTX){  // Given AudioContext, return ConvolverNode
 		let buffer = this.getFilterAudioBuffer(Phi, Theta, Radius, AudioCTX);
 		let Convolver = AudioCTX.createConvolver();
 		Convolver.buffer = buffer;
 		return Convolver;
 	}
 
-	
+	get CurrentIndex(){
+		return this.currentIndex;
+	}
+
+	get CurrentSourcePosition(){
+		return this.sourcePosition[this.currentIndex];
+	}	
+
+	get SamplingRate(){
+		return this.f.get("Data.SamplingRate").value;
+
+	}
 }
