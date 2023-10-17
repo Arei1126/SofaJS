@@ -51,6 +51,9 @@ function convertIR2AudioBuf(audioctx,L,R){
 
 export class Sofa {
 	constructor(buffer) {
+		if(!(buffer instanceof ArrayBuffer)){
+			throw TypeError("Buffer for Sofa must be ArrayBuffer");
+		}
 		this.buffer = buffer;
 		this.f = new hdf5.File(this.buffer, "w");
 		let sourcePositionPre = this.f.get("SourcePosition").value;
