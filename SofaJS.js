@@ -32,6 +32,21 @@ function SofaGetClosestPosition(Phi,Theta,Radius,positionList){
 	return closestIndex;
 }
 
+function SofaGetClosestPositionCartesian(x,y,z,positionList){
+	var closestIndex = 0;
+	var closestDistance = Infinity;
+	positionList.forEach((pos,index) => {
+		let [targetX,targetY,targetZ] = spherical2cartesian(pos[0], pos[1], pos[2]);
+		let currentDistance =  Math.pow(x-targetX,2) + Math.pow(y-targetY,2) + Math.pow(z-targetZ,2);
+		if(currentDistance < closestDistance){
+			closestIndex = index;
+			closestDistance = currentDistance;
+		}
+	});
+	return closestIndex;
+
+}
+
 
 function convertIR2AudioBuf(audioctx,L,R){
 	var l = new Float32Array(L);
@@ -51,6 +66,9 @@ function convertIR2AudioBuf(audioctx,L,R){
 
 export class Sofa {
 	constructor(buffer) {
+		if(!(buffer instanceof ArrayBuffer)){
+			throw TypeError("Buffer for Sofa must be ArrayBuffer");
+		}
 		this.buffer = buffer;
 		this.f = new hdf5.File(this.buffer, "w");
 		let sourcePositionPre = this.f.get("SourcePosition").value;
@@ -69,6 +87,18 @@ export class Sofa {
 		let L = this.IRs.slice(LStart,RStart);
 		let R = this.IRs.slice(RStart,RStart+this.numberOfSamples);
 		return [L,R]
+	}
+
+	getFilterAudioBufferCartesian(x,y,z,AudioCTX){
+		let closestIndex = SofaGetClosestPositionCartesian(x,y,z,this.sourcePosition);
+		this.currentIndex = closestIndex;
+
+		let LStart = closestIndex*this.numberOfSamples*2;
+		let RStart = LStart + this.numberOfSamples;
+		let L = this.IRs.slice(LStart,RStart);
+		let R = this.IRs.slice(RStart,RStart+this.numberOfSamples);
+		return  convertIR2AudioBuf(AudioCTX,L,R);
+
 	}
 	
 	getFilterAudioBuffer(Phi,Theta,Radius,AudioCTX){  // Given AudioContexct, return audio buffer of Impulse Response
